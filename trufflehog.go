@@ -9,8 +9,11 @@ import (
 )
 
 type issue struct {
-	reason string
-	commit *object.Commit
+	commit *object.Commit // the commit that failed
+	source string         // the objectionable string from the source
+	file   string         // the file containing the issue
+	line   int            // the line in the file with the issue
+	reason string         // the semantic reason (eg, entropy high, which regex rule, etc)
 }
 
 func CheckIfError(err error, message string) {
