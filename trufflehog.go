@@ -6,6 +6,7 @@ import (
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
+	"math"
 	"strings"
 )
 
@@ -18,6 +19,7 @@ type issue struct {
 }
 
 func CheckIfError(err error, message string) {
+	// TODO get rid of helper function
 	if err != nil {
 		fmt.Println(message)
 		panic(err)
@@ -25,17 +27,28 @@ func CheckIfError(err error, message string) {
 }
 
 func main() {
-	issues, err := CheckRepo("https://github.com/src-d/go-siva")
+	// run code
+	// TODO arguments/configuration file
+	// TODO curl | jq for all repositories in org/GHE
+
+	repo := "https://github.com/comoyo/terraform-modules"
+	//	repo := "https://github.com/src-d/go-siva"
+	issues, err := CheckRepo(repo)
 	CheckIfError(err, "CheckRepo failed...")
 	printIssues(issues)
 }
 
 func printIssues(issues []issue) error {
+	// pretty print discovered issues. i
+	// TODO output json
+
 	fmt.Println("printing issues:", len(issues))
 	fmt.Println(issues)
 	return nil
 }
 func CheckRepo(repourl string) ([]issue, error) {
+	// checks a repository for any issues, in particular, secrets.
+
 	fmt.Println("checking ", repourl)
 
 	repo, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
@@ -62,8 +75,7 @@ func CheckRepo(repourl string) ([]issue, error) {
 }
 
 func checkCommit(c *object.Commit, issues *[]issue) error {
-	//	fmt.Println(fmt.Sprintf("type(c)=%T", c))
-	//	fmt.Println(c)
+	//Checks a commit for any issues
 
 	fileIter, err := c.Files() // possible to iterate by diff/patch instead of file?
 	CheckIfError(err, "issues getting files from commit")
@@ -89,8 +101,9 @@ func checkCommit(c *object.Commit, issues *[]issue) error {
 }
 
 func checkEntropy(lines []string, filename string, c *object.Commit) ([]issue, error) {
+	// checks each line in a file for high entropy words, creating issues as discovered
+
 	entropyissues := make([]issue, 0)
-	fmt.Println(lines)
 	for linenum, lineval := range lines {
 		for _, word := range strings.Fields(lineval) {
 			highentropy, err := wordEntropy(word)
@@ -105,5 +118,36 @@ func checkEntropy(lines []string, filename string, c *object.Commit) ([]issue, e
 }
 
 func wordEntropy(word string) (bool, error) {
-	return true, errors.New("not implemented")
+	// calculates shannon entropy of a word. if the word surpasses thresholds, returns true.
+	//TODO optimize character counting loops...
+
+	if len(word) < 1 {
+		return false, nil
+	}
+	wordlen := float64(len(word))
+	entropy := 0.0
+	charset := "1234567890abcdefABCDEF"
+	for _, char := range charset {
+		px := float64(strings.Count(word, string(char))) / wordlen
+		if px > 0.0 {
+			entropy += (-px * math.Log2(px))
+		}
+	}
+	exentropy := 0.0
+	excharset := "ghijklmnopqrstuvwyzGHIJKLMNOPQRSTUVWXYZ+/="
+	for _, char := range excharset {
+		px := float64(strings.Count(word, string(char))) / wordlen
+		if px > 0.0 {
+			exentropy += (-px * math.Log2(px))
+		}
+	}
+	if exentropy > 0.0 { //must be base64
+		entropy += exentropy
+		return (entropy > 4.5), nil
+	}
+	return (entropy > 3), nil
+}
+
+func checkRegexes(lines []string, filename string, c *object.Commit) ([]issue, error) {
+	return nil, errors.New("not implemented")
 }
