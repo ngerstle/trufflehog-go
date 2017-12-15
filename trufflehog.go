@@ -27,6 +27,7 @@ func main() {
 }
 
 func printIssues(issues []issue) error {
+	fmt.Println("printing issues:", len(issues))
 	fmt.Println(issues)
 	return nil
 }
@@ -47,29 +48,28 @@ func CheckRepo(repourl string) ([]issue, error) {
 
 	issues := make([]issue, 0)
 	err = cIter.ForEach(func(c *object.Commit) error {
-		return checkCommit(c, issues)
+		return checkCommit(c, &issues)
 	})
-	fmt.Println(issues)
-	//err = cIter.ForEach(func(c *object.Commit) error {
-	//	fmt.Println(c)
-	//	return nil
-	//})
 	CheckIfError(err, "checking commits failed")
-	return nil, nil
+	return issues, nil
 }
 
-func checkCommit(c *object.Commit, issues []issue) error {
-	commitissues := make([]issue, 0)
-	newissue := issue{"commit has issue: " + c.String(), c}
-	commitissues = append(commitissues, newissue)
-	issues = append(commitissues)
-	return errors.New("not implemented")
+func checkCommit(c *object.Commit, issues *[]issue) error {
+	entropyissues, err := checkEntropy(c)
+	CheckIfError(err, "checking entropy failed")
+	regexissues, err := checkRegexes(c)
+	CheckIfError(err, "checking regex failed")
+	*issues = append(*issues, entropyissues...)
+	*issues = append(*issues, regexissues...)
+	return nil
 }
 
-
-func checkEntropy(issues []issue) error {
-	return errors.New("not implemented")
+func checkEntropy(c *object.Commit) ([]issue, error) {
+	//	entropyissues := make([]issue, 0)
+	//	newissue := issue{"commit has issue: " + c.String(), c}
+	return nil, errors.New("not implemented")
 }
-func checkRegexes(issues []issue) error {
-	return errors.New("not implemented")
+func checkRegexes(c *object.Commit) ([]issue, error) {
+	//	regexissue := make([]issue, 0)
+	return nil, errors.New("not implemented")
 }
